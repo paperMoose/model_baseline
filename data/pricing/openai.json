@@ -1,0 +1,122 @@
+{
+    "LLMs": [
+      {
+        "model": "gpt-4o",
+        "version": "gpt-4o-2024-08-06",
+        "pricing": {
+          "input_per_million_tokens": "$2.50",
+          "cached_input_per_million_tokens": "$1.25",
+          "output_per_million_tokens": "$10.00",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "gpt-4o-mini",
+        "version": "gpt-4o-mini-2024-07-18",
+        "pricing": {
+          "input_per_million_tokens": "$0.15",
+          "cached_input_per_million_tokens": "$0.075",
+          "output_per_million_tokens": "$0.60",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "o1",
+        "version": "o1-2024-12-17",
+        "pricing": {
+          "input_per_million_tokens": "$15.00",
+          "cached_input_per_million_tokens": "$7.50",
+          "output_per_million_tokens": "$60.00",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "o3-mini",
+        "version": "o3-mini-2025-01-31",
+        "pricing": {
+          "input_per_million_tokens": "$1.10",
+          "cached_input_per_million_tokens": "$0.55",
+          "output_per_million_tokens": "$4.40",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "o1-mini",
+        "version": "o1-mini-2024-09-12",
+        "pricing": {
+          "input_per_million_tokens": "$1.10",
+          "cached_input_per_million_tokens": "$0.55",
+          "output_per_million_tokens": "$4.40",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "gpt-4-turbo",
+        "version": "gpt-4-turbo-2024-04-09",
+        "pricing": {
+          "input_per_million_tokens": "$10.00",
+          "output_per_million_tokens": "$30.00",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "gpt-4",
+        "version": "gpt-4-0613",
+        "pricing": {
+          "input_per_million_tokens": "$30.00",
+          "output_per_million_tokens": "$60.00",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "gpt-4-32k",
+        "pricing": {
+          "input_per_million_tokens": "$60.00",
+          "output_per_million_tokens": "$120.00",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "gpt-3.5-turbo",
+        "version": "gpt-3.5-turbo-0125",
+        "pricing": {
+          "input_per_million_tokens": "$0.50",
+          "output_per_million_tokens": "$1.50",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "gpt-3.5-turbo-instruct",
+        "pricing": {
+          "input_per_million_tokens": "$1.50",
+          "output_per_million_tokens": "$2.00",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "gpt-3.5-turbo-16k-0613",
+        "pricing": {
+          "input_per_million_tokens": "$3.00",
+          "output_per_million_tokens": "$4.00",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "davinci-002",
+        "pricing": {
+          "input_per_million_tokens": "$2.00",
+          "output_per_million_tokens": "$2.00",
+          "date": "2025-02-06"
+        }
+      },
+      {
+        "model": "babbage-002",
+        "pricing": {
+          "input_per_million_tokens": "$0.40",
+          "output_per_million_tokens": "$0.40",
+          "date": "2025-02-06"
+        }
+      }
+    ]
+  }
+  
