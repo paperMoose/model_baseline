@@ -14,36 +14,42 @@ logger = logging.getLogger(__name__)
 
 class GeminiAdapter(ProviderAdapter):
     def init_client(self):
-        """
-        Initialize the Gemini model using genai.Client as per new SDK docs.
-        """
+        """Initialize the Gemini client."""
         api_key = os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("GOOGLE_API_KEY not found in environment variables")
         
-        self.generation_config_dict = self.model_config.kwargs # Store the kwargs
+        self.generation_config_dict = self.model_config.kwargs
         
-        # Initialize the client using genai.Client
         client = genai.Client(api_key=api_key)
         return client
 
     def make_prediction(self, prompt: str, task_id: Optional[str] = None, test_id: Optional[str] = None, pair_index: int = None) -> Attempt:
         """
-        Make a prediction with the Gemini model and return an Attempt object
+        Make a prediction with the Gemini model and return an Attempt object.
         
         Args:
-            prompt: The prompt to send to the model
-            task_id: Optional task ID to include in metadata
-            test_id: Optional test ID to include in metadata
+            prompt: The prompt to send to the model.
+            task_id: Optional task ID.
+            test_id: Optional test ID.
+            pair_index: Optional index for paired data.
         """
         start_time = datetime.now(timezone.utc)
         
-        # For a single prompt, typically a user message
         messages = [{"role": "user", "content": prompt}] 
         response = self.chat_completion(messages)
         
         if response is None:
             logger.error(f"Failed to get response from chat_completion for task {task_id}")
+            # Create a default Attempt object to signify failure
+            default_usage = Usage(
+                prompt_tokens=0, completion_tokens=0, total_tokens=0,
+                completion_tokens_details=CompletionTokensDetails(
+                    reasoning_tokens=0, accepted_prediction_tokens=0, rejected_prediction_tokens=0
+                )
+            )
+            default_cost = Cost(prompt_cost=0.0, completion_cost=0.0, total_cost=0.0)
+            
             return Attempt(
                 metadata=AttemptMetadata(
                     model=self.model_config.model_name,
@@ -52,30 +58,16 @@ class GeminiAdapter(ProviderAdapter):
                     end_timestamp=datetime.now(timezone.utc),
                     choices=[], 
                     kwargs=self.model_config.kwargs, 
-                    usage=Usage( # Provide default Usage object
-                        prompt_tokens=0,
-                        completion_tokens=0,
-                        total_tokens=0,
-                        completion_tokens_details=CompletionTokensDetails(
-                            reasoning_tokens=0,
-                            accepted_prediction_tokens=0,
-                            rejected_prediction_tokens=0
-                        )
-                    ), 
-                    cost=Cost( # Provide default Cost object
-                        prompt_cost=0.0,
-                        completion_cost=0.0,
-                        total_cost=0.0
-                    ),
+                    usage=default_usage,
+                    cost=default_cost,
                     error_message="Failed to get valid response from provider",
-                    task_id=task_id, pair_index=pair_index, test_id=test_id # Ensure these are passed
+                    task_id=task_id, pair_index=pair_index, test_id=test_id
                 ),
                 answer=""
             )
 
         end_time = datetime.now(timezone.utc)
 
-        # Safely access usage_metadata and its attributes
         usage_metadata = getattr(response, 'usage_metadata', None)
         logger.debug(f"Response usage metadata: {usage_metadata}")
         
@@ -85,7 +77,6 @@ class GeminiAdapter(ProviderAdapter):
         
         response_text = getattr(response, 'text', "")
 
-        # Use pricing from model config
         input_cost_per_token = self.model_config.pricing.input / 1_000_000
         output_cost_per_token = self.model_config.pricing.output / 1_000_000
         
@@ -113,7 +104,7 @@ class GeminiAdapter(ProviderAdapter):
                 completion_tokens=output_tokens,
                 total_tokens=total_tokens,
                 completion_tokens_details=CompletionTokensDetails(
-                    reasoning_tokens=0,
+                    reasoning_tokens=0, # Gemini API does not explicitly provide reasoning tokens
                     accepted_prediction_tokens=output_tokens,
                     rejected_prediction_tokens=0
                 )
@@ -134,44 +125,36 @@ class GeminiAdapter(ProviderAdapter):
             role = msg.get("role")
             content = msg.get("content", "")
             if role == "assistant":
-                role = "model"  # Gemini uses 'model' for assistant
+                role = "model"  # Gemini uses 'model' for assistant responses
             
-            # Ensure role is either 'user' or 'model' for multi-turn
-            # System instructions are handled by GenerateContentConfig
             if role in ["user", "model"]:
                 contents_list.append(types.Content(role=role, parts=[types.Part(text=content)]))
-            elif role == "system" and content: # Handle system message if provided
-                # If system_instruction is also in generation_config_dict, it might conflict or be preferred.
-                # The API might prefer one over the other or merge. For now, include if present.
-                # This assumes system messages can be part of the 'contents' list if structured correctly,
-                # OR they are handled by system_instruction in GenerateContentConfig.
-                # The docs imply system_instruction is part of GenerateContentConfig.
-                # Let's ensure 'system_instruction' from kwargs takes precedence if it exists.
+            elif role == "system" and content:
+                # System messages from the input 'messages' list are not directly added to Gemini's 'contents'.
+                # They should be provided via the 'system_instruction' key within self.model_config.kwargs,
+                # which populates self.generation_config_dict for types.GenerateContentConfig.
+                # If 'system_instruction' is not in model_config.kwargs, this message will be effectively ignored
+                # by the Gemini API unless explicitly handled elsewhere or if this adapter's behavior changes.
                 if 'system_instruction' not in self.generation_config_dict:
-                     # If not in main config, create a system instruction part if this is the only one
-                     # This is a bit ambiguous from docs if contents can have system role directly.
-                     # Sticking to system_instruction in GenerateContentConfig is safer.
-                     # For now, let's assume system messages in the list are converted to user messages
-                     # or handled by a top-level system_instruction.
-                     # The most robust is to rely on system_instruction in GenerateContentConfig.
-                     # We'll filter system messages out of contents_list and rely on the config.
-                     logger.info(f"System message in chat history: '{content}'. Will be handled by system_instruction in GenerateContentConfig if provided.")
-                pass # System messages from history are not added to contents_list directly
-                     # They should be specified via `system_instruction` in `GenerateContentConfig`.
+                     logger.info(
+                         f"System message found in chat history: '{content}'. "
+                         "This will not be used unless 'system_instruction' is set in model_config.kwargs "
+                         "or this adapter is modified to handle it directly in 'contents'."
+                     )
+                # `pass` ensures these are not added to `contents_list` at this stage.
+                pass
 
-        # generation_config_dict already contains all kwargs including potential system_instruction
-        # types.GenerateContentConfig will pick up system_instruction if it's a valid param for it.
         config_params = self.generation_config_dict.copy()
 
         try:
             response = self.client.models.generate_content(
-                model=self.model_config.model_name, # Pass model name here
+                model=self.model_config.model_name,
                 contents=contents_list,
                 config=types.GenerateContentConfig(**config_params)
             )
             return response
         except Exception as e:
-            logger.error(f"Error in chat_completion with google.genai (client.models.generate_content): {e}")
+            logger.error(f"Error in chat_completion with google.genai: {e}")
             if hasattr(e, 'response') and e.response:
                  logger.error(f"API Error details: {e.response}")
             return None
@@ -193,17 +176,16 @@ class GeminiAdapter(ProviderAdapter):
         }}
         """
         
-        # Config for extraction should be minimal, e.g., temperature.
-        # Filter from self.generation_config_dict
+        # Filter config for extraction, using common generation parameters.
+        # System instructions are generally not needed for this type of extraction.
         extract_config_params = {
             k: v for k, v in self.generation_config_dict.items() 
-            if k in ['temperature', 'top_p', 'top_k', 'max_output_tokens', 'stop_sequences'] # Common params for generation
+            if k in ['temperature', 'top_p', 'top_k', 'max_output_tokens', 'stop_sequences']
         }
-        # system_instruction is unlikely needed for simple extraction from existing text.
 
         try:
             response = self.client.models.generate_content(
-                model=self.model_config.model_name, # Specify model
+                model=self.model_config.model_name,
                 contents=prompt, 
                 config=types.GenerateContentConfig(**extract_config_params) if extract_config_params else None
             )
