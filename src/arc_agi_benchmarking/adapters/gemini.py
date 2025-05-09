@@ -6,7 +6,7 @@ from google import genai
 from google.genai import types
 from typing import List, Optional
 from datetime import datetime, timezone
-from src.schemas import ARCTaskOutput, AttemptMetadata, Choice, Message, Usage, Cost, CompletionTokensDetails, Attempt
+from arc_agi_benchmarking.schemas import ARCTaskOutput, AttemptMetadata, Choice, Message, Usage, Cost, CompletionTokensDetails, Attempt
 import logging
 
 load_dotenv()
